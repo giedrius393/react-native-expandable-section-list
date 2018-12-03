@@ -1,130 +1,97 @@
-/**
- * Created by dpcui on 27/05/2017.
- */
-
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import {
   View,
-  ListView,
-  ScrollView,
   LayoutAnimation,
   TouchableOpacity,
-  RefreshControl,
+  FlatList,
 } from 'react-native';
 
 class ExpandableList extends Component {
   constructor(props) {
     super(props);
-    this.ds = new ListView.DataSource({ rowHasChanged: (r1, r2) => r1 !== r2 });
-    this.listView;
     const map = new Map();
-    if (props.dataSource && props.isOpen) {
-      props.dataSource.map((item, i) => map.set(i.toString(), true))
-    }
-
-    if (props.openOptions) {
-      props.openOptions.map((item) => map.set(item.toString(), true))
-    }
     this.state = {
-      memberOpened: map
-    }
+      memberOpened: map,
+    };
   }
 
-  componentWillReceiveProps(nextProps) {
-    const map = new Map();
-    if (nextProps.dataSource && nextProps.isOpen) {
-      nextProps.dataSource.map((item, i) => map.set(i.toString(), true));
-    }
-    if (nextProps.openOptions) {
-      nextProps.openOptions.map((item) => map.set(item.toString(), true));
-    }
-    this.setState({memberOpened: map});
-  }
+  onPress = (i) => {
+    const {
+      headerOnPress,
+    } = this.props;
+    const {
+      memberOpened,
+    } = this.state;
 
-  static propTypes = {
-    dataSource: PropTypes.array.isRequired,
-    headerKey: PropTypes.string,
-    memberKey: PropTypes.string,
-    renderRow: PropTypes.func,
-    renderSectionHeaderX: PropTypes.func,
-    renderSectionFooterX: PropTypes.func,
-    headerOnPress: PropTypes.func,
-    isOpen: PropTypes.bool,
-    openOptions: PropTypes.array,
-  };
-
-  static defaultProps = {
-    headerKey: 'header',
-    memberKey: 'member',
-    isOpen: false,
-  };
-
-  setSectionState = (index, state) => {
-    this.setState((s) => {
-      const memberOpened = new Map(s.memberOpened);
-      memberOpened.set(index.toString(), state); // toggle
-      return {memberOpened};
-    });
-    LayoutAnimation.easeInEaseOut();
-  };
-
-  _onPress = (i) => {
     this.setState((state) => {
-      const memberOpened = new Map(state.memberOpened);
-      memberOpened.set(i, !memberOpened.get(i)); // toggle
-      return { memberOpened };
+      const memberOpenedValue = new Map(state.memberOpened);
+      memberOpenedValue.set(i, !memberOpened.get(i)); // toggle
+      return { memberOpened: memberOpenedValue };
     });
 
-    if (this.props.headerOnPress) {
-      this.props.headerOnPress(i, !(!!this.state.memberOpened.get(i)));
+    if (headerOnPress) {
+      headerOnPress(i, !(memberOpened.get(i)));
     }
 
     LayoutAnimation.easeInEaseOut();
   };
 
-  _renderRow = (rowData, sectionId, rowId) => { // eslint-disable-line
-    const { renderRow, renderSectionHeaderX, renderSectionFooterX, headerKey, memberKey } = this.props;
-    let memberArr = rowData[memberKey];
+  renderMember = (member) => {
+    const { renderItem } = this.props;
+    return member.map(memberItem => (
+      <View key={`member_${memberItem.id}`}>
+        {renderItem ? renderItem(memberItem) : null}
+      </View>
+    ));
+  };
 
-    if (!this.state.memberOpened.get(rowId) || !memberArr) {
-      memberArr = [];
-    }
+  renderSection = ({ item }) => {
+    const { renderSectionHeaderX, headerKey, memberKey } = this.props;
+    const { memberOpened } = this.state;
+    const memberList = !item[memberKey] || !memberOpened.get(item.id) ? [] : item[memberKey];
 
     return (
       <View>
-        <TouchableOpacity onPress={() => this._onPress(rowId)}>
-          { renderSectionHeaderX ? renderSectionHeaderX(rowData[headerKey], rowId,
-              !!this.state.memberOpened.get(rowId)) : null}
+        <TouchableOpacity onPress={() => this.onPress(item.id)}>
+          { renderSectionHeaderX ? renderSectionHeaderX(item[headerKey]) : null}
         </TouchableOpacity>
-        <ScrollView scrollEnabled={false}>
-          {
-            memberArr.map((rowItem, index) => {
-              return (
-                <View key={index}>
-                  {renderRow ? renderRow(rowItem, index, rowId) : null}
-                </View>
-              );
-            })
-          }
-          { memberArr.length > 0 && renderSectionFooterX ? renderSectionFooterX(rowData, sectionId) : null }
-        </ScrollView>
+        { this.renderMember(memberList) }
       </View>
     );
-  }
+  };
 
   render() {
     const { dataSource } = this.props;
+    const { memberOpened } = this.state;
     return (
-      <ListView
+      <FlatList
         {...this.props}
-        ref={instance => this.listView = instance}
-        dataSource={this.ds.cloneWithRows(dataSource || [])}
-        renderRow={this._renderRow}
-        enableEmptySections={true}
+        keyExtractor={item => item.id}
+        data={dataSource}
+        renderItem={this.renderSection}
+        extraData={memberOpened}
+        scrollEnabled={false}
       />
     );
   }
 }
+
+ExpandableList.propTypes = {
+  dataSource: PropTypes.object.isRequired,
+  headerKey: PropTypes.string,
+  memberKey: PropTypes.string,
+  renderItem: PropTypes.func,
+  renderSectionHeaderX: PropTypes.func,
+  headerOnPress: PropTypes.func,
+  isOpen: PropTypes.bool,
+  openOptions: PropTypes.array,
+};
+
+ExpandableList.defaultProps = {
+  headerKey: 'header',
+  memberKey: 'member',
+  isOpen: false,
+};
 
 export default ExpandableList;
