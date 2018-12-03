@@ -1,3 +1,7 @@
+/**
+ * Created by dpcui on 27/05/2017.
+ */
+
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -78,7 +82,7 @@ class ExpandableList extends Component {
 }
 
 ExpandableList.propTypes = {
-  dataSource: PropTypes.object.isRequired,
+  dataSource: PropTypes.array.isRequired,
   headerKey: PropTypes.string,
   memberKey: PropTypes.string,
   renderItem: PropTypes.func,
@@ -92,6 +96,10 @@ ExpandableList.defaultProps = {
   headerKey: 'header',
   memberKey: 'member',
   isOpen: false,
+  renderItem: null,
+  renderSectionHeaderX: null,
+  headerOnPress: null,
+  openOptions: [],
 };
 
 export default ExpandableList;
